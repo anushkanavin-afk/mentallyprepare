@@ -1,0 +1,22 @@
+node_modules/
+data.db
+data.db-wal
+data.db-shm
+data.json
+data.json.migrated
+.env
+
+# SQLite
+mentally-prepare.db
+mentally-prepare.db-wal
+mentally-prepare.db-shm
+
+# Backups
+backups/
+
+# VAPID keys
+.vapid-keys.json
+
+# Old server backups
+server.js.bak
+server-old.js
