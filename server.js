@@ -391,7 +391,25 @@ const HELPLINES = {
 function scanForSafety(text) {
   const lower = text.toLowerCase();
   const crisis = SAFETY_KEYWORDS.some(kw => lower.includes(kw));
-  const pii = CONTENT_FLAGS.some(kw => lower.includes(kw));
+  let pii = CONTENT_FLAGS.some(kw => lower.includes(kw));
+  // Regex for Indian phone numbers (10 digits, with or without spaces/dashes)
+  const phoneRegex = /(?:\+91[- ]?)?(?:[6-9][0-9]{9})|(?:[0-9]{3}[- ]?[0-9]{3}[- ]?[0-9]{4})/g;
+  if (phoneRegex.test(text)) pii = true;
+
+  // Regex for common social media handles/links
+  const socialRegexes = [
+    /(?:instagram|ig)\s*[:@]?\s*([a-zA-Z0-9_.]{3,})/i,
+    /(?:snapchat|sc)\s*[:@]?\s*([a-zA-Z0-9_.]{3,})/i,
+    /(?:whatsapp|wa)\s*[:@]?\s*([0-9]{10,})/i,
+    /(?:facebook|fb)\s*[:@]?\s*([a-zA-Z0-9_.]{3,})/i,
+    /(?:twitter|x)\s*[:@]?\s*([a-zA-Z0-9_.]{3,})/i,
+    /(?:@)[a-zA-Z0-9_.]{3,}/, // generic @handle
+    /(?:t\.me|telegram)\s*[:@]?\s*([a-zA-Z0-9_]{3,})/i,
+    /(?:linkedin)\s*[:@]?\s*([a-zA-Z0-9_.-]{3,})/i,
+    /(?:youtube|yt)\s*[:@]?\s*([a-zA-Z0-9_.-]{3,})/i,
+    /(?:facebook\.com|instagram\.com|twitter\.com|linkedin\.com|t\.me|wa\.me|youtube\.com|snapchat\.com|fb\.com|x\.com)\/[a-zA-Z0-9_.-]+/i
+  ];
+  if (socialRegexes.some(r => r.test(text))) pii = true;
   return { crisis, pii };
 }
 
@@ -919,9 +937,11 @@ app.post('/api/comment', apiLimiter, requireAuth, (req, res) => {
 app.post('/api/report', apiLimiter, requireAuth, (req, res) => {
   try {
     const userId = req.session.userId;
-    const { day, reason } = req.body;
+    const { day, reason, text } = req.body;
     if (!reason || !reason.trim()) return res.status(400).json({ error: 'Reason required' });
-    stmts.insertReport.run(userId, day || 0, reason.trim().substring(0, 500));
+    // Store reported text for review (if provided)
+    const reportedText = text ? text.substring(0, 2000) : '';
+    stmts.insertReport.run(userId, day || 0, reason.trim().substring(0, 500), reportedText);
     res.json({ ok: true });
   } catch (e) {
     console.error('Report error:', e);
@@ -1474,6 +1494,31 @@ app.post('/api/reminder-signup', apiLimiter, (req, res) => {
       return res.status(409).json({ error: 'Already signed up' });
     }
     fs.appendFileSync(EMAILS_PATH, emailClean + '\n');
+
+    // Send welcome/daily reminder email immediately
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS
+      }
+    });
+    const subject = 'Mentally Prepare: Daily Reminder';
+    const text = 'Welcome! You are now signed up to receive daily reminders to write your journal entry. Take 5 minutes today to write your first entry!';
+    transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: emailClean,
+      subject,
+      text
+    }, (err, info) => {
+      if (err) {
+        console.error('Failed to send welcome reminder to', emailClean, err);
+      } else {
+        console.log('Sent welcome reminder to', emailClean);
+      }
+    });
+
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to save email' });
