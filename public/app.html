@@ -694,10 +694,6 @@ textarea::placeholder{color:rgba(248,242,255,.15)}
 
 /* NEW FLOAT WORDS CSS */
 .problem-float-word{opacity:0;transition:opacity .8s ease;position:absolute;font-family:'Lora',serif;font-style:italic;font-size:13px;color:var(--ink-s);white-space:nowrap}
-.problem-float-word:nth-of-type(1){top:10%;left:-20px}
-.problem-float-word:nth-of-type(2){top:50%;right:-40px}
-.problem-float-word:nth-of-type(3){bottom:15%;left:0}
-.problem-float-word:nth-of-type(4){top:30%;right:-60px}
 .problem-float-word.visible{opacity:1}
 .problem-stats{display:flex;flex-direction:column;gap:20px}
 .problem-stat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;position:relative;overflow:hidden;transition:all .4s}
@@ -3113,15 +3109,32 @@ async function resetPassword() {
 // ═══════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
   const words = document.querySelectorAll('.problem-float-word');
-  let idx = 0;
-  function cycleWords() {
-    words.forEach((w, i) => w.classList.toggle('visible', i === idx));
+  if (!words.length) return;
+
+  // Set positions directly on each word
+  const positions = [
+    {top:'10%',  left:'-20px',  right:'auto', bottom:'auto'},
+    {top:'50%',  right:'-40px', left:'auto',  bottom:'auto'},
+    {bottom:'15%',left:'0',     right:'auto', top:'auto'},
+    {top:'30%',  right:'-60px', left:'auto',  bottom:'auto'},
+  ];
+  words.forEach(function(w, i) {
+    var p = positions[i] || positions[0];
+    w.style.position = 'absolute';
+    w.style.top      = p.top    || 'auto';
+    w.style.bottom   = p.bottom || 'auto';
+    w.style.left     = p.left   || 'auto';
+    w.style.right    = p.right  || 'auto';
+  });
+
+  var idx = 0;
+  function showNext() {
+    words.forEach(function(w) { w.classList.remove('visible'); });
+    words[idx].classList.add('visible');
     idx = (idx + 1) % words.length;
   }
-  if (words.length) {
-    cycleWords();
-    setInterval(cycleWords, 1800);
-  }
+  showNext();
+  setInterval(showNext, 2000);
 });
 </script>
 </body>
