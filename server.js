@@ -18,6 +18,7 @@ const Database = require('better-sqlite3');
 const webpush = require('web-push');
 
 const app = express();
+app.set('trust proxy', 1); // Trust Railway/Heroku/Vercel proxy for correct IP handling
 // Trust the first proxy (for Railway, Vercel, Heroku, etc.)
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
