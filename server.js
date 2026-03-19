@@ -1,3 +1,4 @@
+console.log('HELLO FROM SERVER.JS', new Date().toISOString());
 // Serve terms.html
 app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'terms.html'));
