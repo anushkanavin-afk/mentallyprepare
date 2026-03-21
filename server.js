@@ -345,7 +345,8 @@ const authLimiter = rateLimit({
   max: 20,
   message: { error: 'Too many attempts, please try again later' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
 });
 
 const apiLimiter = rateLimit({
@@ -353,7 +354,8 @@ const apiLimiter = rateLimit({
   max: 60,
   message: { error: 'Too many requests, slow down' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
 });
 
 // ─── Prompts ────────────────────────────
@@ -1542,9 +1544,12 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Simple admin auth (replace with real auth in production)
 function requireAdmin(req, res, next) {
-  // For now, allow all. Add real authentication as needed.
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const pw = req.headers['x-admin-password'];
+  if (!adminPassword || !pw || pw !== adminPassword) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   next();
 }
 
