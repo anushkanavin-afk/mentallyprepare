@@ -239,7 +239,7 @@ const stmts = {
   `),
   deleteUserComments: db.prepare('DELETE FROM comments WHERE user_id = ?'),
 
-  insertReport: db.prepare('INSERT INTO reports (reporter_id, day, reason) VALUES (?, ?, ?)'),
+  insertReport: db.prepare("INSERT INTO reports (reporter_id, day, reason, created_at) VALUES (?, ?, ?, datetime('now'))"),
   deleteUserReports: db.prepare('DELETE FROM reports WHERE reporter_id = ?'),
 
   deleteUserMatches: db.prepare('DELETE FROM matches WHERE user1_id = ? OR user2_id = ?'),
@@ -948,11 +948,9 @@ app.post('/api/comment', apiLimiter, requireAuth, (req, res) => {
 app.post('/api/report', apiLimiter, requireAuth, (req, res) => {
   try {
     const userId = req.session.userId;
-    const { day, reason, text } = req.body;
+    const { day, reason } = req.body;
     if (!reason || !reason.trim()) return res.status(400).json({ error: 'Reason required' });
-    // Store reported text for review (if provided)
-    const reportedText = text ? text.substring(0, 2000) : '';
-    stmts.insertReport.run(userId, day || 0, reason.trim().substring(0, 500), reportedText);
+    stmts.insertReport.run(userId, day || 0, reason.trim().substring(0, 500));
     res.json({ ok: true });
   } catch (e) {
     console.error('Report error:', e);
